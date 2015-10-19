@@ -74,7 +74,47 @@ int numberOfRoots(cmplx (*f)(cmplx), double R) {
     return result/2;
 }
 
+cmplx integrate_log(cmplx (*f)(cmplx), cmplx z1, cmplx z2){
+    cmplx r = 0;
+    cmplx z = z1, dz;
+    int n = 100;
+
+    dz = 1. / n * (z2 - z1);
+    r += 0.25 * (f(z + dz) - f(z - dz)) / f(z);
+    for (int i = 1; i < n; ++i) {
+        z += dz;
+        r += 0.5 * (f(z + dz) - f(z - dz)) / f(z);
+    }
+    z += dz;
+    r += 0.25 * (f(z + dz) - f(z - dz)) / f(z);
+
+    return r;
+}
+/*
+ * Число корней внутри квадрата
+ */
+int numberOfRoots(cmplx (*f)(cmplx), cmplx z1, cmplx z2) {
+    cmplx r = 0, z;
+
+    r += integrate_log(f, z1, z = cmplx(z2.real(), z1.imag()));
+    r += integrate_log(f, z, z2);
+    r += integrate_log(f, z2, z = cmplx(z1.real(), z2.imag()));
+    r += integrate_log(f, z, z1);
+
+    return (int) round(r.imag()/M_PI/2);
+}
+
+int numberOfRoots(cmplx (*f)(cmplx), double x0, double y0, double w, double h) {
+    double x1 = x0 - w/2,
+           x2 = x0 + w/2,
+           y1 = y0 - h/2,
+           y2 = y0 + h/2;
+
+    return numberOfRoots(f, cmplx(x1, y1), cmplx(x2, y2));
+}
+
 int main() {
     std::cout << contourIntegral(0,0,20,20) << std::endl;
     std::cout << numberOfRoots(f, 10.0) << std::endl;
+    std::cout << numberOfRoots(f, 0, 0, 20, 20) << std::endl;
 }
