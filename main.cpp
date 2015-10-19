@@ -2,7 +2,7 @@
 #include <cmath>
 #include <complex>
 
-typedef std::complex<double> cmplx;
+using cmplx = std::complex<double>;
 
 cmplx f (cmplx z) {
     return sin(z);
@@ -15,11 +15,12 @@ cmplx g (cmplx z) {
 /*
  * интеграл по отрезку в комплексной плоскости
  */
-cmplx integrate(cmplx (*f)(cmplx), cmplx z1, cmplx z2) {
+cmplx integrate(cmplx (*f)(cmplx), cmplx z1, cmplx z2, int n = 100) {
     cmplx result = 0;
-    for (int i = 0; i < 100; ++i) {
-        cmplx z = (double(100 - i) * z1 + double(i) * z2) / 100.0;
-        result += f(z) * (z2 - z1) / 100.0;
+    cmplx step = (z2 - z1) / double(n);
+    for (int i = 0; i < n; ++i) {
+        cmplx z = z1 + double(i) * step;
+        result += f(z) * step;
     }
     return result;
 }
@@ -50,28 +51,34 @@ cmplx contourIntegral (double x0, double y0, double w, double h) {
 
 /*
  * Число нулей внутри круга радиуса R с центром в начале координат
+ *
+ * Считаем изменение аргумента вдоль образа окружности
+ * Разделив на 2пи получаем число оборотов, равное числу корней внутри круга
  */
-int numberOfRoots(cmplx (*f)(cmplx), double R) {
-    int result = 0;
+int numberOfRoots(cmplx (*f)(cmplx), double R, cmplx center = cmplx(0,0)) {
     int n = 100;
 
-    double arg = std::arg(f(R));
-    double parg = arg;
-    for (int i = 1; i <= n; ++i) {
-        cmplx z = R * exp(cmplx(0, 2.0 * i * M_PI / n));
-        arg = atan2(f(z).imag(), f(z).real());
-        if (arg * parg < 0)
-            ++result;
-        parg = arg;
+    int result = 0;
+    double angle = 0;
+    cmplx e = exp(cmplx(0, 2.0 * M_PI / n));
+
+    cmplx z = R;
+    double arg = std::arg(f(center + z));
+
+    for (int i = 0; i < n; ++i) {
+        z *= e;
+        double arg1 = std::arg(f(center + z));
+        // дополняем старый аргумент до непрерывности с новым
+        if (arg1 - arg > M_PI)
+            arg += 2.0 * M_PI;
+        if (arg - arg1 > M_PI)
+            arg -= 2.0 * M_PI;
+        angle += arg1 - arg;
+        arg = arg1;
     }
 
-    // на каждом обороте происходит по 2 смены знака
-    // если образ начальной точки будет на оси координат, то эта смена знака
-    // потеряется, контроль чётности вернёт её
-    if (result % 2)
-        ++result;
-
-    return result/2;
+    result = round(angle / 2.0 / M_PI);
+    return result;
 }
 
 cmplx integrate_log(cmplx (*f)(cmplx), cmplx z1, cmplx z2){
@@ -117,4 +124,6 @@ int main() {
     std::cout << contourIntegral(0,0,20,20) << std::endl;
     std::cout << numberOfRoots(f, 10.0) << std::endl;
     std::cout << numberOfRoots(f, 0, 0, 20, 20) << std::endl;
+    std::cout << contourIntegral(0,2,3,3) << std::endl;
+    std::cout << numberOfRoots(f, 4, cmplx(0, 2.0)) << std::endl;
 }
