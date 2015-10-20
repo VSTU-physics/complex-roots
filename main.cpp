@@ -1,19 +1,26 @@
 #include <iostream>
 #include <cmath>
 #include <complex>
+#include <vector>
+#include <queue>
 
 #ifndef M_PI
     #define M_PI		3.14159265358979323846
 #endif // M_PI
 
 using cmplx = std::complex<double>;
+using cmplxs = std::vector<cmplx>;
+
+struct rectangle {
+    cmplx z1, z2;
+    unsigned int roots;
+
+    double diag () {return std::abs(z1-z2);}
+    cmplx center () {return (z1+z2)/2.;}
+};
 
 cmplx f (cmplx z) {
-    return sin(z);
-}
-
-cmplx g (cmplx z) {
-    return 1.0 / f(z);
+    return z*(z-1.)*(z+1.)*(z+2.);
 }
 
 /*
@@ -29,105 +36,88 @@ cmplx integrate(cmplx (*f)(cmplx), cmplx z1, cmplx z2, int n = 100) {
     return result;
 }
 
-/*
- * интеграл по прямоугольному контуру размерами w x h с центром в точке (x0, y0)
- */
-cmplx contourIntegral (double x0, double y0, double w, double h) {
-    cmplx result = 0;
-
-    double x1 = x0 - w/2,
-           x2 = x0 + w/2,
-           y1 = y0 - h/2,
-           y2 = y0 + h/2;
-
-    cmplx z1 = cmplx(x2, y1);
-    cmplx z2 = cmplx(x2, y2);
-    cmplx z3 = cmplx(x1, y2);
-    cmplx z4 = cmplx(x1, y1);
-
-    result += integrate(g, z1, z2);
-    result += integrate(g, z2, z3);
-    result += integrate(g, z3, z4);
-    result += integrate(g, z4, z1);
-
-    return result;
-}
-
-/*
- * Число нулей внутри круга радиуса R с центром в начале координат
- *
- * Считаем изменение аргумента вдоль образа окружности
- * Разделив на 2пи получаем число оборотов, равное числу корней внутри круга
- */
-int numberOfRoots(cmplx (*f)(cmplx), double R, cmplx center = cmplx(0,0)) {
-    int n = 100;
-
-    int result = 0;
-    double angle = 0;
-    cmplx e = exp(cmplx(0, 2.0 * M_PI / n));
-
-    cmplx z = R;
-    double arg = std::arg(f(center + z));
-
-    for (int i = 0; i < n; ++i) {
-        z *= e;
-        double arg1 = std::arg(f(center + z));
-        // дополняем старый аргумент до непрерывности с новым
-        if (arg1 - arg > M_PI)
-            arg += 2.0 * M_PI;
-        if (arg - arg1 > M_PI)
-            arg -= 2.0 * M_PI;
-        angle += arg1 - arg;
-        arg = arg1;
-    }
-
-    result = round(angle / 2.0 / M_PI);
-    return result;
-}
-
-cmplx integrate_log(cmplx (*f)(cmplx), cmplx z1, cmplx z2){
+cmplx integrateLog(cmplx (*f)(cmplx), cmplx z1, cmplx z2){
     cmplx r = 0;
     cmplx z = z1, dz;
     int n = 100;
 
-    dz = 1. / n * (z2 - z1);
-    r += 0.25 * (f(z + dz) - f(z - dz)) / f(z);
+    dz = (z2 - z1) / double(n);
+    r += 0.5 * (f(z + dz/2.) - f(z - dz/2.)) / f(z);
     for (int i = 1; i < n; ++i) {
         z += dz;
-        r += 0.5 * (f(z + dz) - f(z - dz)) / f(z);
+        r += (f(z + dz/2.) - f(z - dz/2.)) / f(z);
     }
     z += dz;
-    r += 0.25 * (f(z + dz) - f(z - dz)) / f(z);
+    r += 0.5 * (f(z + dz/2.) - f(z - dz/2.)) / f(z);
 
     return r;
 }
 /*
  * Число корней внутри квадрата
  */
-int numberOfRoots(cmplx (*f)(cmplx), cmplx z1, cmplx z2) {
+unsigned int numberOfRoots(cmplx (*f)(cmplx), cmplx z1, cmplx z2) {
     cmplx r = 0, z;
 
-    r += integrate_log(f, z1, z = cmplx(z2.real(), z1.imag()));
-    r += integrate_log(f, z, z2);
-    r += integrate_log(f, z2, z = cmplx(z1.real(), z2.imag()));
-    r += integrate_log(f, z, z1);
+    r += integrateLog(f, z1, z = cmplx(z2.real(), z1.imag()));
+    r += integrateLog(f, z, z2);
+    r += integrateLog(f, z2, z = cmplx(z1.real(), z2.imag()));
+    r += integrateLog(f, z, z1);
 
-    return (int) round(r.imag()/M_PI/2);
+    return std::abs((int) round(r.imag()/M_PI/2));
 }
 
-int numberOfRoots(cmplx (*f)(cmplx), double x0, double y0, double w, double h) {
-    double x1 = x0 - w/2,
-           x2 = x0 + w/2,
-           y1 = y0 - h/2,
-           y2 = y0 + h/2;
+cmplxs roots(cmplx (*f)(cmplx), cmplx z1, cmplx z2, double eps = 1e-5) {
+    rectangle r = {z1, z2, numberOfRoots(f, z1, z2)};
+    std::queue<rectangle> rects;
 
-    return numberOfRoots(f, cmplx(x1, y1), cmplx(x2, y2));
+    if (r.roots == 0)
+        return {};
+
+    rects.push(r);
+    while (!rects.empty() && rects.front().diag() > eps) {
+        r = rects.front();
+        rects.pop();
+
+        if (r.roots == 0) continue;
+
+        auto width = std::abs((r.z2 - r.z1).real());
+        auto height = std::abs((r.z2 - r.z1).imag());
+
+        rectangle r1, r2;
+        // вот этот кусок стоит упростить
+        if (width > height) {
+            auto u1 = r.z1, u2 = r.z2 - (r.z2 - r.z1).real() / 2.;
+            r1 = {u1, u2, numberOfRoots(f, u1, u2)};
+
+            u1 = r.z1 + (r.z2 - r.z1).real() / 2., u2 = r.z2;
+            r2 = {u1, u2, numberOfRoots(f, u1, u2)};
+        } else {
+            auto u1 = r.z1, u2 = r.z2 - cmplx(0, (r.z2 - r.z1).imag() / 2.);
+            r1 = {u1, u2, numberOfRoots(f, u1, u2)};
+
+            u1 = r.z1 + cmplx(0, (r.z2 - r.z1).imag() / 2.), u2 = r.z2;
+            r2 = {u1, u2, numberOfRoots(f, u1, u2)};
+        }
+
+        if (r1.roots + r2.roots != r.roots) {
+            // нужно придумать магию
+        }
+
+        if (r1.roots) rects.push(r1);
+        if (r2.roots) rects.push(r2);
+    }
+
+    cmplxs roots;
+    while (!rects.empty()) {
+        roots.push_back(rects.front().center());
+        rects.pop();
+    }
+
+    return roots;
 }
 
 int main() {
-    std::cout << contourIntegral(0,0,20,20) << std::endl;
-    std::cout << numberOfRoots(f, 10.0) << std::endl;
-    std::cout << numberOfRoots(f, 0, 0, 20, 20) << std::endl;
-    std::cout << contourIntegral(0,2,3,3) << std::endl;
-    std::cout << numberOfRoots(f, 4, cmplx(0, 2.0)) << std::endl;
+    auto answer = roots(f, cmplx(-10.1, -10.1), cmplx(10, 10));
+    for (auto i: answer)
+        std::cout << i << std::endl;
 }
