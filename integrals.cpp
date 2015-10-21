@@ -4,7 +4,7 @@
 /*
  * интеграл по отрезку в комплексной плоскости
  */
-cmplx integrate(cmplx (*f)(cmplx), cmplx z1, cmplx z2, int n) {
+cmplx integrate(func f, cmplx z1, cmplx z2, int n) {
     cmplx result = 0;
     cmplx step = (z2 - z1) / double(n);
     for (int i = 0; i < n; ++i) {
@@ -14,7 +14,7 @@ cmplx integrate(cmplx (*f)(cmplx), cmplx z1, cmplx z2, int n) {
     return result;
 }
 
-cmplx integrateLog(cmplx (*f)(cmplx), cmplx z1, cmplx z2){
+cmplx integrateLog(func f, cmplx z1, cmplx z2){
     cmplx r = 0;
     cmplx z = z1, dz;
     int n = 100;

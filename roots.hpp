@@ -3,4 +3,4 @@
 #include <vector>
 using cmplxs = std::vector<cmplx>;
 
-cmplxs roots(cmplx (*f)(cmplx), cmplx z1, cmplx z2, double eps = 1e-5);
+cmplxs roots(func f, cmplx z1, cmplx z2, double eps=1e-5);
