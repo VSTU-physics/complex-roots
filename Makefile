@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -std=c++11 -O2
+CXXFLAGS = -Wall -std=c++11 -ggdb
 
 
 target_file  := main
@@ -10,7 +10,7 @@ dep_files    := $(patsubst %.o, %.dep, $(object_files))
 all: $(target_file)
 
 $(target_file): $(object_files)
-	$(CXX) $(object_files) -o $(prog_name)
+	$(CXX) $(object_files) -ggdb -o $(prog_name)
 
 strip:
 	strip -s $(prog_name)
