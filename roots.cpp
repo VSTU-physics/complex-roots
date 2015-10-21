@@ -1,12 +1,14 @@
 #include <queue>
+#include <iostream>
 
 #include "complex.hpp"
 #include "integrals.hpp"
 #include "rectangle.hpp"
 #include "roots.hpp"
 
+
 /*
- * Число корней внутри квадрата
+ * Число корней внутри прямоугольника
  */
 unsigned int numberOfRoots(cmplx (*f)(cmplx), cmplx z1, cmplx z2) {
     cmplx r = 0, z;
@@ -17,6 +19,13 @@ unsigned int numberOfRoots(cmplx (*f)(cmplx), cmplx z1, cmplx z2) {
     r += integrateLog(f, z, z1);
 
     return std::abs((int) round(r.imag() / M_PI / 2));
+}
+
+unsigned int numberOfRoots(cmplx (*f)(cmplx), rectangle r) {
+    double x1 = r.z1.real(), x2 = r.z2.real(), y1 = r.z1.imag(), y2 = r.z2.imag();
+    cmplx z1 = cmplx(std::min(x1, x2), std::min(y1, y2)),
+          z2 = cmplx(std::max(x1, x2), std::max(y1, y2));
+    return numberOfRoots(f, z1, z2);
 }
 
 
@@ -38,13 +47,14 @@ cmplxs roots(cmplx (*f)(cmplx), cmplx z1, cmplx z2, double eps) {
 
         // эта штука считается дважды для каждого прямоугольника
         n = numberOfRoots(f, r.z1, r.z2);
+        std::cout << n << std::endl;
         if (n == 0) continue;
 
         rectangle r1, r2;
-        divide(r, r1, r2);
+        r.divide(r1, r2);
 
-        auto n1 = numberOfRoots(f, r1.z1, r1.z2);
-        auto n2 = numberOfRoots(f, r2.z1, r2.z2);
+        auto n1 = numberOfRoots(f, r1);
+        auto n2 = numberOfRoots(f, r2);
 
         /* while (roots1 + roots2 < roots) {} */
 
