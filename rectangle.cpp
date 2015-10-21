@@ -1,6 +1,5 @@
 #include "complex.hpp"
 #include "rectangle.hpp"
-#include "integrals.hpp"
 
 void rectangle::divide(rectangle & r1, rectangle & r2, double ratio){
     auto width = (z2 - z1).real();

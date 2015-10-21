@@ -8,4 +8,3 @@ struct rectangle {
     void divide(rectangle & r1, rectangle & r2, double ratio = 1.0);
 };
 
-
