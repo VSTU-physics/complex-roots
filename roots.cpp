@@ -25,12 +25,12 @@ unsigned int numberOfRootsArg(func f, cmplx z1, cmplx z2) {
     double angle = 0;
     cmplx zs[] = {z1, cmplx(z2.real(), z1.imag()),
                   z2, cmplx(z1.real(), z2.imag()), z1};
-    double arg = 0;
+    double arg = NAN;
     for (int j = 0; j < 4; ++j)
     for (int i = 0; i < n; ++i) {
         auto z = (zs[j] * double(n-i) + zs[j+1] * double(i)) / double(n) ;
         double arg1 = std::arg(f(z));
-        if (arg == 0) {
+        if (isnan(arg)) {
             arg = arg1;
             continue;
         }
