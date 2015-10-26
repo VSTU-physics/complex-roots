@@ -62,7 +62,7 @@ cmplxs roots(func f, cmplx z1, cmplx z2, double eps) {
     // легли на границу областей
     rectangle r = {z1 - eps, z2 + eps * cmplx(0, 1)};
 
-    auto n = numberOfRoots(f, r.z1, r.z2);
+    auto n = numberOfRoots(f, r);
     if (n == 0)
         return {};
 
